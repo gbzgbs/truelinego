@@ -46,6 +46,14 @@
         .car-card:not(.unavailable) {
             cursor: pointer;
         }
+        /* Enable scrolling for booking form view */
+        #booking-form-view {
+            overflow-y: auto;
+            max-height: 90vh;
+        }
+        .booking-form-container {
+            margin: 2rem 0;
+        }
     </style>
 </head>
 <body class="bg-black text-white">
@@ -124,43 +132,45 @@
         </div>
 
         <div id="booking-form-view" class="w-full max-w-3xl hidden">
-            <div id="booking-form-container" class="p-8 bg-black bg-opacity-80 rounded-2xl shadow-2xl backdrop-blur-md border border-gray-700">
-                <h2 class="text-3xl font-bold text-center mb-6 text-white">Confirm Your Booking</h2>
-                
-                <div class="mb-6 p-4 bg-gray-800 rounded-lg border border-gray-700 space-y-2">
-                    <h3 class="text-lg font-bold text-green-400 border-b border-gray-600 pb-2 mb-2">Trip Summary</h3>
-                    <p><strong>From:</strong> <span id="confirm-pickup" class="text-gray-300"></span></p>
-                    <p><strong>To:</strong> <span id="confirm-dropoff" class="text-gray-300"></span></p>
-                    <p><strong>When:</strong> <span id="confirm-time" class="text-gray-300"></span></p>
-                    <div>
-                        <p class="font-semibold"><strong>Vehicle:</strong> <span id="confirm-vehicle" class="font-semibold text-white"></span></p>
-                        <p id="confirm-capacity" class="text-sm text-gray-300 mt-1"></p>
+            <div class="booking-form-container">
+                <div id="booking-form-container" class="p-8 bg-black bg-opacity-80 rounded-2xl shadow-2xl backdrop-blur-md border border-gray-700">
+                    <h2 class="text-3xl font-bold text-center mb-6 text-white">Confirm Your Booking</h2>
+                    
+                    <div class="mb-6 p-4 bg-gray-800 rounded-lg border border-gray-700 space-y-2">
+                        <h3 class="text-lg font-bold text-green-400 border-b border-gray-600 pb-2 mb-2">Trip Summary</h3>
+                        <p><strong>From:</strong> <span id="confirm-pickup" class="text-gray-300"></span></p>
+                        <p><strong>To:</strong> <span id="confirm-dropoff" class="text-gray-300"></span></p>
+                        <p><strong>When:</strong> <span id="confirm-time" class="text-gray-300"></span></p>
+                        <div>
+                            <p class="font-semibold"><strong>Vehicle:</strong> <span id="confirm-vehicle" class="font-semibold text-white"></span></p>
+                            <p id="confirm-capacity" class="text-sm text-gray-300 mt-1"></p>
+                        </div>
+                        <p><strong>Price:</strong> <span id="confirm-price" class="font-bold text-xl text-yellow-400"></span></p>
                     </div>
-                    <p><strong>Price:</strong> <span id="confirm-price" class="font-bold text-xl text-yellow-400"></span></p>
-                </div>
 
-                <div class="space-y-4">
-                    <div>
-                        <label for="full-name" class="block text-sm font-medium text-gray-200 mb-2">Full Name</label>
-                        <input type="text" id="full-name" name="full-name" class="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter your full name">
+                    <div class="space-y-4">
+                        <div>
+                            <label for="full-name" class="block text-sm font-medium text-gray-200 mb-2">Full Name</label>
+                            <input type="text" id="full-name" name="full-name" class="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter your full name">
+                        </div>
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-gray-200 mb-2">Email Address</label>
+                            <input type="email" id="email" name="email" class="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter your email">
+                        </div>
+                        <div>
+                            <label for="phone" class="block text-sm font-medium text-gray-200 mb-2">Phone Number</label>
+                            <input type="tel" id="phone" name="phone" class="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter your phone number">
+                        </div>
+                        <div>
+                            <label for="booking-notes" class="block text-sm font-medium text-gray-200 mb-2">Optional Notes</label>
+                            <textarea id="booking-notes" name="booking-notes" rows="3" class="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., specific pickup instructions, flight number..."></textarea>
+                        </div>
                     </div>
-                    <div>
-                        <label for="email" class="block text-sm font-medium text-gray-200 mb-2">Email Address</label>
-                        <input type="email" id="email" name="email" class="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter your email">
-                    </div>
-                    <div>
-                        <label for="phone" class="block text-sm font-medium text-gray-200 mb-2">Phone Number</label>
-                        <input type="tel" id="phone" name="phone" class="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter your phone number">
-                    </div>
-                    <div>
-                        <label for="booking-notes" class="block text-sm font-medium text-gray-200 mb-2">Optional Notes</label>
-                        <textarea id="booking-notes" name="booking-notes" rows="3" class="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., specific pickup instructions, flight number..."></textarea>
-                    </div>
-                </div>
 
-                <div class="flex space-x-4 mt-8">
-                    <button id="back-to-car-selection-btn" class="w-1/2 py-3 px-4 bg-gray-600 hover:bg-gray-700 rounded-lg text-white font-semibold">Back</button>
-                    <button id="confirm-booking-btn" class="w-1/2 py-3 px-4 bg-green-600 hover:bg-green-700 rounded-lg text-white font-semibold">Send Booking Request</button>
+                    <div class="flex space-x-4 mt-8">
+                        <button id="back-to-car-selection-btn" class="w-1/2 py-3 px-4 bg-gray-600 hover:bg-gray-700 rounded-lg text-white font-semibold">Back</button>
+                        <button id="confirm-booking-btn" class="w-1/2 py-3 px-4 bg-green-600 hover:bg-green-700 rounded-lg text-white font-semibold">Send Booking Request</button>
+                    </div>
                 </div>
             </div>
         </div>
