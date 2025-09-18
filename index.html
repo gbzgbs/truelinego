@@ -13,7 +13,7 @@
         /* Custom styles */
         body {
             font-family: 'Inter', sans-serif;
-            overflow: hidden; /* Prevent scrollbars */
+            overflow-x: hidden; /* Prevent horizontal scrollbars */
         }
         #video-background {
             position: fixed;
@@ -45,6 +45,11 @@
         /* Style for clickable car cards */
         .car-card:not(.unavailable) {
             cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .car-card:not(.unavailable):hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
         }
         /* Enable scrolling for booking form view */
         #booking-form-view {
@@ -53,6 +58,57 @@
         }
         .booking-form-container {
             margin: 2rem 0;
+        }
+        /* Animation classes */
+        .view-transition {
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        .fade-in {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .fade-out {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        .hidden {
+            display: none;
+        }
+        /* Pulse animation for loading */
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .pulse {
+            animation: pulse 1.5s infinite;
+        }
+        /* Real-time validation styles */
+        .validation-error {
+            border-color: #f87171 !important;
+        }
+        .validation-success {
+            border-color: #4ade80 !important;
+        }
+        .validation-message {
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+            display: none;
+        }
+        .validation-error-message {
+            color: #f87171;
+        }
+        .validation-success-message {
+            color: #4ade80;
+        }
+        /* Map loading placeholder */
+        .map-placeholder {
+            height: 350px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #1f2937;
+            border-radius: 0.75rem;
         }
     </style>
 </head>
@@ -65,7 +121,7 @@
     <div class="video-overlay"></div>
 
     <div class="relative min-h-screen flex flex-col items-center justify-center p-4 z-10">
-        <div id="form-view" class="w-full max-w-lg">
+        <div id="form-view" class="w-full max-w-lg view-transition fade-in">
             <div class="p-8 bg-black bg-opacity-70 rounded-2xl shadow-2xl backdrop-blur-md border border-gray-700">
                 <h1 class="text-3xl md:text-4xl font-bold text-center mb-2 text-white">Trueline Go</h1>
                 <p class="text-center text-gray-300 mb-8">Reliable Rides, Anytime, Anywhere.</p>
@@ -79,14 +135,17 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg>
                             </button>
                         </div>
+                        <div class="validation-message validation-error-message" id="pickup-error">Please enter a valid pickup location</div>
                     </div>
                     <div>
                         <label for="dropoff" class="block text-sm font-medium text-gray-200 mb-2">Drop Off Point</label>
                         <input type="text" id="dropoff" name="dropoff" class="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter address, postcode, or place">
+                        <div class="validation-message validation-error-message" id="dropoff-error">Please enter a valid dropoff location</div>
                     </div>
                     <div>
                         <label for="booking-time" class="block text-sm font-medium text-gray-200 mb-2">Booking Time</label>
                         <input type="datetime-local" id="booking-time" name="booking-time" class="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <div class="validation-message validation-error-message" id="time-error">Please select a valid date and time</div>
                     </div>
                     <!-- Policy Checkbox and Link -->
                     <div class="flex items-center">
@@ -95,13 +154,14 @@
                             I agree to the <a href="/public/Ride_Booking_Policy.pdf" target="_blank" class="text-blue-400 hover:underline">Ride Booking Policy</a>
                         </label>
                     </div>
+                    <div class="validation-message validation-error-message" id="policy-error">You must agree to the policy to continue</div>
                 </div>
                 <button id="calculate-btn" class="w-full mt-8 py-3 px-4 bg-gray-500 rounded-lg text-white font-semibold text-lg shadow-lg transform cursor-not-allowed" disabled>Submit</button>
                 <div id="result" class="mt-8 text-center text-lg h-8"></div>
             </div>
         </div>
 
-        <div id="results-view" class="w-full max-w-3xl hidden">
+        <div id="results-view" class="w-full max-w-3xl view-transition hidden">
              <div class="p-8 bg-black bg-opacity-80 rounded-2xl shadow-2xl backdrop-blur-md border border-gray-700">
                 <div class="flex justify-between items-start text-center mb-6">
                     <div class="w-2/5"><h3 class="text-lg font-bold text-yellow-400">Pick Up</h3><p id="pickup-result" class="mt-1 text-gray-200"></p></div>
@@ -109,10 +169,19 @@
                         <h3 class="text-lg font-bold text-green-400">Booking Details</h3>
                         <p id="booking-time-result" class="mt-1 text-gray-200 text-sm"></p>
                         <p id="distance-result" class="mt-2 text-gray-100 text-xl font-semibold"></p>
+                        <p id="duration-result" class="mt-1 text-gray-300 text-sm"></p>
                     </div>
                     <div class="w-2/5"><h3 class="text-lg font-bold text-blue-400">Drop Off</h3><p id="dropoff-result" class="mt-1 text-gray-200"></p></div>
                 </div>
-                <div id="map"></div>
+                <div id="map-container">
+                    <div class="map-placeholder" id="map-loading">
+                        <div class="text-center">
+                            <div class="pulse"><i class="fas fa-map-marked-alt text-4xl text-blue-400"></i></div>
+                            <p class="mt-2 text-gray-300">Loading map...</p>
+                        </div>
+                    </div>
+                    <div id="map" class="hidden"></div>
+                </div>
                 <div class="flex space-x-4 mt-6">
                     <button id="start-over-btn" class="w-1/2 py-3 px-4 bg-gray-600 hover:bg-gray-700 rounded-lg text-white font-semibold">Start Over</button>
                     <button id="choose-vehicle-btn" class="w-1/2 py-3 px-4 bg-green-600 hover:bg-green-700 rounded-lg text-white font-semibold">Next</button>
@@ -120,9 +189,13 @@
              </div>
         </div>
 
-        <div id="car-selection-view" class="w-full max-w-3xl hidden">
+        <div id="car-selection-view" class="w-full max-w-3xl view-transition hidden">
              <div class="p-8 bg-black bg-opacity-80 rounded-2xl shadow-2xl backdrop-blur-md border border-gray-700">
                 <h2 class="text-3xl font-bold text-center mb-6 text-white">Select a Ride</h2>
+                <div class="text-center mb-4">
+                    <p class="text-gray-300">Estimated trip distance: <span id="trip-distance" class="font-semibold">0 miles</span></p>
+                    <p class="text-gray-300">Estimated trip time: <span id="trip-duration" class="font-semibold">0 min</span></p>
+                </div>
                 <div id="car-options-container" class="space-y-4"></div>
                 <div class="flex space-x-4 mt-8">
                     <button id="back-to-route-btn" class="w-1/3 py-3 px-4 bg-gray-600 hover:bg-gray-700 rounded-lg text-white font-semibold">Back</button>
@@ -131,7 +204,7 @@
              </div>
         </div>
 
-        <div id="booking-form-view" class="w-full max-w-3xl hidden">
+        <div id="booking-form-view" class="w-full max-w-3xl view-transition hidden">
             <div class="booking-form-container">
                 <div id="booking-form-container" class="p-8 bg-black bg-opacity-80 rounded-2xl shadow-2xl backdrop-blur-md border border-gray-700">
                     <h2 class="text-3xl font-bold text-center mb-6 text-white">Confirm Your Booking</h2>
@@ -145,6 +218,8 @@
                             <p class="font-semibold"><strong>Vehicle:</strong> <span id="confirm-vehicle" class="font-semibold text-white"></span></p>
                             <p id="confirm-capacity" class="text-sm text-gray-300 mt-1"></p>
                         </div>
+                        <p><strong>Distance:</strong> <span id="confirm-distance" class="text-gray-300"></span></p>
+                        <p><strong>Estimated Time:</strong> <span id="confirm-duration" class="text-gray-300"></span></p>
                         <p><strong>Price:</strong> <span id="confirm-price" class="font-bold text-xl text-yellow-400"></span></p>
                     </div>
 
@@ -152,14 +227,17 @@
                         <div>
                             <label for="full-name" class="block text-sm font-medium text-gray-200 mb-2">Full Name</label>
                             <input type="text" id="full-name" name="full-name" class="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter your full name">
+                            <div class="validation-message validation-error-message" id="name-error">Please enter your full name</div>
                         </div>
                         <div>
                             <label for="email" class="block text-sm font-medium text-gray-200 mb-2">Email Address</label>
                             <input type="email" id="email" name="email" class="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter your email">
+                            <div class="validation-message validation-error-message" id="email-error">Please enter a valid email address</div>
                         </div>
                         <div>
                             <label for="phone" class="block text-sm font-medium text-gray-200 mb-2">Phone Number</label>
                             <input type="tel" id="phone" name="phone" class="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter your phone number">
+                            <div class="validation-message validation-error-message" id="phone-error">Please enter a valid phone number</div>
                         </div>
                         <div>
                             <label for="booking-notes" class="block text-sm font-medium text-gray-200 mb-2">Optional Notes</label>
@@ -181,36 +259,59 @@
     <script>
         let map;
         let directionsRenderer;
+        let directionsService;
         let tripDistanceInMiles = 0;
+        let tripDurationInMinutes = 0;
         let isAirportDropoff = false;
+        let currentView = 'form';
+        let autocompletePickup;
+        let autocompleteDropoff;
+        let selectedCar = null;
 
+        // Initialize the application
         function initMap() {
-            const directionsService = new google.maps.DirectionsService();
-            const geocoder = new google.maps.Geocoder();
+            directionsService = new google.maps.DirectionsService();
             directionsRenderer = new google.maps.DirectionsRenderer();
             
-            const formView = document.getElementById('form-view');
-            const resultsView = document.getElementById('results-view');
-            const carSelectionView = document.getElementById('car-selection-view');
-            const bookingFormView = document.getElementById('booking-form-view');
-            const bookingFormContainer = document.getElementById('booking-form-container');
-
-            const calculateBtn = document.getElementById('calculate-btn');
-            const policyAgreement = document.getElementById('policy-agreement'); // Checkbox element
+            // Initialize autocomplete for pickup and dropoff
+            const autocompleteOptions = { 
+                componentRestrictions: { country: "GB" }, 
+                fields: ["formatted_address", "geometry", "icon", "name", "place_id", "types"], 
+                types: ["geocode", "establishment"] 
+            };
             
-            const chooseVehicleBtn = document.getElementById('choose-vehicle-btn');
-            const startOverBtn = document.getElementById('start-over-btn');
-            const backToRouteBtn = document.getElementById('back-to-route-btn');
-            const carOptionsContainer = document.getElementById('car-options-container');
+            autocompletePickup = new google.maps.places.Autocomplete(document.getElementById('pickup'), autocompleteOptions);
+            autocompleteDropoff = new google.maps.places.Autocomplete(document.getElementById('dropoff'), autocompleteOptions);
+            
+            // Add event listeners for real-time validation
+            setupEventListeners();
+            
+            // Set minimum datetime for booking time to current time
+            const now = new Date();
+            const localDateTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+            document.getElementById('booking-time').min = localDateTime;
+            
+            // Initialize with current time + 30 minutes as default
+            const defaultTime = new Date(now.getTime() + 30 * 60000);
+            const defaultTimeFormatted = new Date(defaultTime.getTime() - defaultTime.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+            document.getElementById('booking-time').value = defaultTimeFormatted;
+        }
 
-            const backToCarSelectionBtn = document.getElementById('back-to-car-selection-btn');
-            const confirmBookingBtn = document.getElementById('confirm-booking-btn');
-            const proceedToBookingBtn = document.getElementById('proceed-to-booking-btn');
-
-            const autocompleteOptions = { componentRestrictions: { country: "GB" }, fields: ["formatted_address", "geometry", "icon", "name", "place_id", "types"], types: ["geocode", "establishment"] };
-            new google.maps.places.Autocomplete(document.getElementById('pickup'), autocompleteOptions);
-            new google.maps.places.Autocomplete(document.getElementById('dropoff'), autocompleteOptions);
-
+        function setupEventListeners() {
+            const calculateBtn = document.getElementById('calculate-btn');
+            const policyAgreement = document.getElementById('policy-agreement');
+            
+            // Real-time input validation
+            document.getElementById('pickup').addEventListener('input', validateForm);
+            document.getElementById('dropoff').addEventListener('input', validateForm);
+            document.getElementById('booking-time').addEventListener('change', validateForm);
+            document.getElementById('policy-agreement').addEventListener('change', validateForm);
+            
+            // Real-time form validation for booking form
+            document.getElementById('full-name').addEventListener('input', validateBookingForm);
+            document.getElementById('email').addEventListener('input', validateBookingForm);
+            document.getElementById('phone').addEventListener('input', validateBookingForm);
+            
             // Enable Submit button only when policy is agreed
             policyAgreement.addEventListener('change', () => {
                 if (policyAgreement.checked) {
@@ -222,191 +323,124 @@
                     calculateBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
                     calculateBtn.classList.add('bg-gray-500', 'cursor-not-allowed');
                 }
+                validateForm();
             });
 
-            function calculateAndDisplayRoute() {
-                const pickupAddress = document.getElementById('pickup').value;
-                const dropoffAddress = document.getElementById('dropoff').value;
-                const bookingTimeValue = document.getElementById('booking-time').value;
-                if (!pickupAddress || !dropoffAddress || !bookingTimeValue) { 
-                    document.getElementById('result').innerHTML = '<span class="text-yellow-400">Please fill in all fields to proceed.</span>';
-                    return; 
-                }
-                if (!policyAgreement.checked) {
-                    document.getElementById('result').innerHTML = '<span class="text-yellow-400">Please read and agree to the Ride Booking Policy to proceed.</span>';
-                    return;
-                }
-                
-                document.getElementById('result').textContent = 'Calculating...';
-                calculateBtn.disabled = true;
-
-                const request = { origin: pickupAddress, destination: dropoffAddress, travelMode: 'DRIVING', unitSystem: google.maps.UnitSystem.IMPERIAL };
-
-                directionsService.route(request, (result, status) => {
-                    calculateBtn.disabled = false;
-                    if (status === 'OK') {
-                        const destinationWaypoint = result.geocoded_waypoints[1];
-                        isAirportDropoff = destinationWaypoint.types.includes('airport');
-                        
-                        formView.classList.add('hidden');
-                        resultsView.classList.remove('hidden');
-
-                        const leg = result.routes[0].legs[0];
-                        tripDistanceInMiles = leg.distance.value / 1609.34;
-                        
-                        const bookingDate = new Date(bookingTimeValue);
-                        const timeOptions = { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false };
-                        const formattedBookingTime = bookingDate.toLocaleDateString('en-GB', timeOptions);
-                        
-                        document.getElementById('booking-time-result').textContent = formattedBookingTime;
-                        document.getElementById('pickup-result').textContent = leg.start_address;
-                        document.getElementById('dropoff-result').textContent = leg.end_address;
-                        document.getElementById('distance-result').textContent = leg.distance.text;
-                        
-                        if (!map) {
-                           map = new google.maps.Map(document.getElementById("map"), { zoom: 7, center: leg.start_location, disableDefaultUI: true });
+            // Use current location button
+            document.getElementById('current-location-btn').addEventListener('click', () => {
+                if (navigator.geolocation) {
+                    document.getElementById('current-location-btn').classList.add('pulse');
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            const geocoder = new google.maps.Geocoder();
+                            const latlng = {
+                                lat: position.coords.latitude,
+                                lng: position.coords.longitude
+                            };
+                            
+                            geocoder.geocode({ location: latlng }, (results, status) => {
+                                document.getElementById('current-location-btn').classList.remove('pulse');
+                                if (status === 'OK') {
+                                    if (results[0]) {
+                                        document.getElementById('pickup').value = results[0].formatted_address;
+                                        validateForm();
+                                    }
+                                } else {
+                                    showValidationError('pickup', 'Unable to get your location');
+                                }
+                            });
+                        },
+                        (error) => {
+                            document.getElementById('current-location-btn').classList.remove('pulse');
+                            showValidationError('pickup', 'Location access denied');
                         }
-                        directionsRenderer.setMap(map);
-                        directionsRenderer.setDirections(result);
-                    } else {
-                        document.getElementById('result').innerHTML = '<span class="text-yellow-400">Could not calculate distance. Please check your locations.</span>';
-                    }
-                });
-            }
+                    );
+                } else {
+                    showValidationError('pickup', 'Geolocation is not supported by this browser');
+                }
+            });
             
-            function populateCarOptions() {
-                carOptionsContainer.innerHTML = '';
-
-                const carTypes = [
-                    { name: 'Standard', description: 'Affordable, everyday rides', passengers: 4, luggage: 2, icon: 'fa-car', baseFare: 5.00, perMile: 2.00 },
-                    { name: 'Executive', description: 'High-end cars with top-rated drivers', passengers: 4, luggage: 2, icon: 'fa-briefcase', baseFare: 8.00, perMile: 3.50, unavailable: true },
-                    { name: 'MPV', description: 'For large groups up to 6', passengers: 6, luggage: 4, icon: 'fa-van-shuttle', baseFare: 6.00, perMile: 2.75, unavailable: true }
-                ];
-
-                carTypes.forEach(car => {
-                    let price = car.baseFare + (car.perMile * tripDistanceInMiles);
-                    if (isAirportDropoff) {
-                        price += 10;
-                    }
-
-                    let priceHTML;
-                    let cardClasses = "car-card bg-gray-800 p-4 rounded-lg flex items-center justify-between border-2 border-gray-700 transition-all";
-                    
-                    if (car.unavailable) {
-                        cardClasses += " unavailable opacity-60";
-                        priceHTML = `<p class="font-bold text-xl text-gray-500">Unavailable</p>`;
-                    } else {
-                        priceHTML = `<p class="font-bold text-xl">£${price.toFixed(2)}</p>`;
-                    }
-
-                    const carCard = `
-                        <div class="${cardClasses}" 
-                             data-car-name="${car.name}" 
-                             data-price="${price.toFixed(2)}"
-                             data-passengers="${car.passengers}"
-                             data-luggage="${car.luggage}"
-                             data-unavailable="${car.unavailable}">
-                            <div class="flex items-center pointer-events-none">
-                                <i class="fas ${car.icon} text-3xl text-gray-400 w-12 text-center"></i>
-                                <div class="ml-4">
-                                    <h4 class="font-bold text-lg">${car.name}</h4>
-                                    <p class="text-sm text-gray-400">${car.description}</p>
-                                    <p class="text-xs text-gray-300 mt-1">
-                                        <i class="fas fa-user-group mr-1"></i> ${car.passengers} <i class="fas fa-suitcase ml-3 mr-1"></i> ${car.luggage}
-                                    </p>
-                                </div>
-                            </div>
-                            <div class="text-right pointer-events-none">
-                                ${priceHTML}
-                            </div>
-                        </div>
-                    `;
-                    carOptionsContainer.insertAdjacentHTML('beforeend', carCard);
-                });
-            }
-            
-            // --- Event Listeners ---
+            // Main action buttons
             calculateBtn.addEventListener('click', calculateAndDisplayRoute);
-            startOverBtn.addEventListener('click', () => { window.location.reload(); });
-            backToRouteBtn.addEventListener('click', () => {
-                carSelectionView.classList.add('hidden');
-                resultsView.classList.remove('hidden');
+            document.getElementById('start-over-btn').addEventListener('click', () => { 
+                switchView('form'); 
+                document.getElementById('result').textContent = '';
             });
-            backToCarSelectionBtn.addEventListener('click', () => {
-                bookingFormView.classList.add('hidden');
-                carSelectionView.classList.remove('hidden');
+            
+            document.getElementById('back-to-route-btn').addEventListener('click', () => {
+                switchView('results');
+            });
+            
+            document.getElementById('back-to-car-selection-btn').addEventListener('click', () => {
+                switchView('car-selection');
             });
 
-            chooseVehicleBtn.addEventListener('click', () => {
-                resultsView.classList.add('hidden');
-                carSelectionView.classList.remove('hidden');
-                proceedToBookingBtn.disabled = true;
-                proceedToBookingBtn.classList.add('bg-gray-500', 'cursor-not-allowed');
-                proceedToBookingBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
+            document.getElementById('choose-vehicle-btn').addEventListener('click', () => {
+                switchView('car-selection');
+                document.getElementById('proceed-to-booking-btn').disabled = true;
+                document.getElementById('proceed-to-booking-btn').classList.add('bg-gray-500', 'cursor-not-allowed');
+                document.getElementById('proceed-to-booking-btn').classList.remove('bg-green-600', 'hover:bg-green-700');
                 populateCarOptions();
             });
 
-            carOptionsContainer.addEventListener('click', (e) => {
+            document.getElementById('car-options-container').addEventListener('click', (e) => {
                 const clickedCard = e.target.closest('.car-card');
                 if (!clickedCard || clickedCard.dataset.unavailable === 'true') { return; }
 
-                carOptionsContainer.querySelectorAll('.car-card').forEach(card => {
-                    card.classList.remove('border-blue-500');
+                document.getElementById('car-options-container').querySelectorAll('.car-card').forEach(card => {
+                    card.classList.remove('border-blue-500', 'bg-gray-900');
                     card.classList.add('border-gray-700');
                 });
 
-                clickedCard.classList.add('border-blue-500');
+                clickedCard.classList.add('border-blue-500', 'bg-gray-900');
                 clickedCard.classList.remove('border-gray-700');
 
-                proceedToBookingBtn.disabled = false;
-                proceedToBookingBtn.classList.remove('bg-gray-500', 'cursor-not-allowed');
-                proceedToBookingBtn.classList.add('bg-green-600', 'hover:bg-green-700');
-                proceedToBookingBtn.dataset.carName = clickedCard.dataset.carName;
-                proceedToBookingBtn.dataset.price = clickedCard.dataset.price;
-                proceedToBookingBtn.dataset.passengers = clickedCard.dataset.passengers;
-                proceedToBookingBtn.dataset.luggage = clickedCard.dataset.luggage;
+                document.getElementById('proceed-to-booking-btn').disabled = false;
+                document.getElementById('proceed-to-booking-btn').classList.remove('bg-gray-500', 'cursor-not-allowed');
+                document.getElementById('proceed-to-booking-btn').classList.add('bg-green-600', 'hover:bg-green-700');
+                
+                // Store selected car data
+                selectedCar = {
+                    name: clickedCard.dataset.carName,
+                    price: clickedCard.dataset.price,
+                    passengers: clickedCard.dataset.passengers,
+                    luggage: clickedCard.dataset.luggage
+                };
             });
 
-            proceedToBookingBtn.addEventListener('click', () => {
-                const { carName, price, passengers, luggage } = proceedToBookingBtn.dataset;
+            document.getElementById('proceed-to-booking-btn').addEventListener('click', () => {
+                if (!selectedCar) return;
+                
                 const pickupAddress = document.getElementById('pickup-result').textContent;
                 const dropoffAddress = document.getElementById('dropoff-result').textContent;
                 const bookingTime = document.getElementById('booking-time-result').textContent;
+                const distance = document.getElementById('distance-result').textContent;
+                const duration = document.getElementById('duration-result').textContent;
 
                 document.getElementById('confirm-pickup').textContent = pickupAddress;
                 document.getElementById('confirm-dropoff').textContent = dropoffAddress;
                 document.getElementById('confirm-time').textContent = bookingTime;
-                document.getElementById('confirm-vehicle').textContent = carName;
-                document.getElementById('confirm-price').textContent = `£${price}`;
+                document.getElementById('confirm-vehicle').textContent = selectedCar.name;
+                document.getElementById('confirm-price').textContent = `£${selectedCar.price}`;
                 document.getElementById('confirm-capacity').innerHTML = `
-                    <i class="fas fa-user-group mr-1"></i> ${passengers}
-                    <i class="fas fa-suitcase ml-3 mr-1"></i> ${luggage}
+                    <i class="fas fa-user-group mr-1"></i> ${selectedCar.passengers} passengers
+                    <i class="fas fa-suitcase ml-3 mr-1"></i> ${selectedCar.luggage} bags
                 `;
+                document.getElementById('confirm-distance').textContent = distance;
+                document.getElementById('confirm-duration').textContent = duration;
 
-                carSelectionView.classList.add('hidden');
-                bookingFormView.classList.remove('hidden');
+                switchView('booking-form');
             });
 
-            confirmBookingBtn.addEventListener('click', () => {
+            document.getElementById('confirm-booking-btn').addEventListener('click', () => {
+                if (!validateBookingForm(true)) return;
+                
                 // --- 1. Form Validation ---
                 const name = document.getElementById('full-name').value.trim();
                 const email = document.getElementById('email').value.trim();
                 const phone = document.getElementById('phone').value.trim();
                 const notes = document.getElementById('booking-notes').value.trim();
 
-                if (!name || !email || !phone) {
-                    alert('Please fill in your name, email, and phone number.');
-                    return;
-                }
-                if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                    alert('Please enter a valid email address.');
-                    return;
-                }
-                if (!/^[\d\s-()]{10,}$/.test(phone)) {
-                    alert('Please enter a valid phone number with at least 10 digits.');
-                    return;
-                }
-                
                 // --- 2. Assemble All Data for Submission ---
                 const formData = {
                     name: name,
@@ -424,12 +458,12 @@
                 const scriptURL = 'https://script.google.com/macros/s/AKfycbwfVffiAtPCZMRtAkWVyOQ3eR2QwHbe0mK_9u-6EBvWqy7yQJikdeo4ymK74qI_AFZCUw/exec';
 
                 // Disable button to prevent multiple submissions
-                confirmBookingBtn.disabled = true;
-                confirmBookingBtn.textContent = 'Sending...';
+                document.getElementById('confirm-booking-btn').disabled = true;
+                document.getElementById('confirm-booking-btn').textContent = 'Sending...';
 
                 fetch(scriptURL, {
                   method: 'POST',
-                  mode: 'no-cors', // This mode helps bypass browser CORS issues with Google Scripts
+                  mode: 'no-cors',
                   body: JSON.stringify(formData),
                   headers: { 'Content-Type': 'application/json' }
                 })
@@ -438,7 +472,7 @@
                 // Since 'no-cors' mode prevents reading the response, we assume success and show the message.
                 // A short delay improves the user experience.
                 setTimeout(() => {
-                    bookingFormContainer.innerHTML = `
+                    document.getElementById('booking-form-container').innerHTML = `
                         <div class="text-center py-8">
                             <i class="fas fa-phone-alt text-6xl text-blue-400 mb-4"></i>
                             <h2 class="text-3xl font-bold text-blue-400">Request Received!</h2>
@@ -447,8 +481,357 @@
                             <button onclick="window.location.reload()" class="w-full mt-8 py-3 px-4 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-semibold">Make Another Booking</button>
                         </div>
                     `;
-                }, 1000); // 1-second delay 
+                }, 1000);
             });
+        }
+
+        // View transition function
+        function switchView(viewName) {
+            const currentElement = document.getElementById(`${currentView}-view`);
+            const nextElement = document.getElementById(`${viewName}-view`);
+            
+            if (currentElement && nextElement) {
+                currentElement.classList.remove('fade-in');
+                currentElement.classList.add('fade-out');
+                
+                setTimeout(() => {
+                    currentElement.classList.add('hidden');
+                    nextElement.classList.remove('hidden');
+                    
+                    setTimeout(() => {
+                        nextElement.classList.remove('fade-out');
+                        nextElement.classList.add('fade-in');
+                        currentView = viewName;
+                        
+                        // Scroll to top when switching views
+                        window.scrollTo(0, 0);
+                    }, 50);
+                }, 300);
+            }
+        }
+
+        // Real-time form validation
+        function validateForm() {
+            const pickup = document.getElementById('pickup').value.trim();
+            const dropoff = document.getElementById('dropoff').value.trim();
+            const bookingTime = document.getElementById('booking-time').value;
+            const policyChecked = document.getElementById('policy-agreement').checked;
+            
+            let isValid = true;
+            
+            // Validate pickup
+            if (!pickup) {
+                showValidationError('pickup', 'Please enter a pickup location');
+                isValid = false;
+            } else {
+                clearValidationError('pickup');
+            }
+            
+            // Validate dropoff
+            if (!dropoff) {
+                showValidationError('dropoff', 'Please enter a dropoff location');
+                isValid = false;
+            } else {
+                clearValidationError('dropoff');
+            }
+            
+            // Validate booking time
+            if (!bookingTime) {
+                showValidationError('booking-time', 'Please select a booking time');
+                isValid = false;
+            } else {
+                clearValidationError('booking-time');
+            }
+            
+            // Validate policy agreement
+            if (!policyChecked) {
+                showValidationError('policy-agreement', 'You must agree to the policy');
+                isValid = false;
+            } else {
+                clearValidationError('policy-agreement');
+            }
+            
+            return isValid;
+        }
+        
+        function validateBookingForm(submit = false) {
+            const name = document.getElementById('full-name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            
+            let isValid = true;
+            
+            // Validate name
+            if (!name) {
+                showValidationError('full-name', 'Please enter your full name');
+                isValid = false;
+            } else {
+                clearValidationError('full-name');
+            }
+            
+            // Validate email
+            if (!email) {
+                showValidationError('email', 'Please enter your email address');
+                isValid = false;
+            } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                showValidationError('email', 'Please enter a valid email address');
+                isValid = false;
+            } else {
+                clearValidationError('email');
+            }
+            
+            // Validate phone
+            if (!phone) {
+                showValidationError('phone', 'Please enter your phone number');
+                isValid = false;
+            } else if (!/^[\d\s-()]{10,}$/.test(phone)) {
+                showValidationError('phone', 'Please enter a valid phone number');
+                isValid = false;
+            } else {
+                clearValidationError('phone');
+            }
+            
+            return isValid;
+        }
+        
+        function showValidationError(fieldId, message) {
+            const field = document.getElementById(fieldId);
+            const errorElement = document.getElementById(`${fieldId}-error`);
+            
+            if (field) {
+                field.classList.add('validation-error');
+                field.classList.remove('validation-success');
+            }
+            
+            if (errorElement) {
+                errorElement.textContent = message;
+                errorElement.style.display = 'block';
+            }
+        }
+        
+        function clearValidationError(fieldId) {
+            const field = document.getElementById(fieldId);
+            const errorElement = document.getElementById(`${fieldId}-error`);
+            
+            if (field) {
+                field.classList.remove('validation-error');
+                field.classList.add('validation-success');
+            }
+            
+            if (errorElement) {
+                errorElement.style.display = 'none';
+            }
+        }
+        
+        // Calculate and display full route
+        function calculateAndDisplayRoute() {
+            if (!validateForm()) return;
+            
+            const pickupAddress = document.getElementById('pickup').value;
+            const dropoffAddress = document.getElementById('dropoff').value;
+            const bookingTimeValue = document.getElementById('booking-time').value;
+            
+            document.getElementById('result').textContent = 'Calculating route...';
+            document.getElementById('calculate-btn').disabled = true;
+            document.getElementById('calculate-btn').classList.add('pulse');
+
+            const request = { 
+                origin: pickupAddress, 
+                destination: dropoffAddress, 
+                travelMode: 'DRIVING', 
+                unitSystem: google.maps.UnitSystem.IMPERIAL 
+            };
+
+            directionsService.route(request, (result, status) => {
+                document.getElementById('calculate-btn').disabled = false;
+                document.getElementById('calculate-btn').classList.remove('pulse');
+                
+                if (status === 'OK') {
+                    const destinationWaypoint = result.geocoded_waypoints[1];
+                    isAirportDropoff = destinationWaypoint.types.includes('airport');
+                    
+                    const leg = result.routes[0].legs[0];
+                    tripDistanceInMiles = leg.distance.value / 1609.34;
+                    tripDurationInMinutes = leg.duration.value / 60;
+                    
+                    const bookingDate = new Date(bookingTimeValue);
+                    const timeOptions = { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false };
+                    const formattedBookingTime = bookingDate.toLocaleDateString('en-GB', timeOptions);
+                    
+                    document.getElementById('booking-time-result').textContent = formattedBookingTime;
+                    document.getElementById('pickup-result').textContent = leg.start_address;
+                    document.getElementById('dropoff-result').textContent = leg.end_address;
+                    document.getElementById('distance-result').textContent = leg.distance.text;
+                    document.getElementById('duration-result').textContent = leg.duration.text;
+                    
+                    document.getElementById('trip-distance').textContent = leg.distance.text;
+                    document.getElementById('trip-duration').textContent = leg.duration.text;
+                    
+                    // Show map and hide loading placeholder
+                    document.getElementById('map').classList.remove('hidden');
+                    document.getElementById('map-loading').classList.add('hidden');
+                    
+                    if (!map) {
+                       map = new google.maps.Map(document.getElementById("map"), { 
+                           zoom: 7, 
+                           center: leg.start_location, 
+                           disableDefaultUI: true
+                       });
+                    }
+                    directionsRenderer.setMap(map);
+                    directionsRenderer.setDirections(result);
+                    directionsRenderer.setOptions({
+                        polylineOptions: {
+                            strokeColor: "#3b82f6",
+                            strokeWeight: 5
+                        }
+                    });
+                    
+                    document.getElementById('result').textContent = '';
+                    switchView('results');
+                } else {
+                    document.getElementById('result').innerHTML = '<span class="text-yellow-400">Could not calculate route. Please check your locations.</span>';
+                }
+            });
+        }
+        
+        // Populate car options with dynamic pricing
+        function populateCarOptions() {
+            const carOptionsContainer = document.getElementById('car-options-container');
+            carOptionsContainer.innerHTML = '';
+
+            const carTypes = [
+                { 
+                    name: 'Standard', 
+                    description: 'Affordable, everyday rides', 
+                    passengers: 4, 
+                    luggage: 2, 
+                    icon: 'fa-car', 
+                    baseFare: 5.00, 
+                    perMile: 2.00,
+                    surge: calculateSurgeMultiplier()
+                },
+                { 
+                    name: 'Executive', 
+                    description: 'High-end cars with top-rated drivers', 
+                    passengers: 4, 
+                    luggage: 2, 
+                    icon: 'fa-briefcase', 
+                    baseFare: 8.00, 
+                    perMile: 3.50, 
+                    surge: calculateSurgeMultiplier(),
+                    unavailable: checkExecutiveAvailability()
+                },
+                { 
+                    name: 'MPV', 
+                    description: 'For large groups up to 6', 
+                    passengers: 6, 
+                    luggage: 4, 
+                    icon: 'fa-van-shuttle', 
+                    baseFare: 6.00, 
+                    perMile: 2.75, 
+                    surge: calculateSurgeMultiplier(),
+                    unavailable: checkMPVAvailability()
+                }
+            ];
+
+            carTypes.forEach(car => {
+                let price = (car.baseFare + (car.perMile * tripDistanceInMiles)) * car.surge;
+                if (isAirportDropoff) {
+                    price += 10;
+                }
+
+                let priceHTML;
+                let cardClasses = "car-card bg-gray-800 p-4 rounded-lg flex items-center justify-between border-2 border-gray-700 transition-all";
+                let surgeText = '';
+                
+                if (car.surge > 1) {
+                    surgeText = `<span class="text-xs text-yellow-400 block mt-1">${car.surge.toFixed(1)}x surge pricing</span>`;
+                }
+                
+                if (car.unavailable) {
+                    cardClasses += " unavailable opacity-60";
+                    priceHTML = `<p class="font-bold text-xl text-gray-500">Unavailable</p>`;
+                } else {
+                    priceHTML = `
+                        <div>
+                            <p class="font-bold text-xl price-display">£${price.toFixed(2)}</p>
+                            ${surgeText}
+                        </div>
+                    `;
+                }
+
+                const carCard = `
+                    <div class="${cardClasses}" 
+                         data-car-name="${car.name}" 
+                         data-price="${price.toFixed(2)}"
+                         data-passengers="${car.passengers}"
+                         data-luggage="${car.luggage}"
+                         data-unavailable="${car.unavailable}">
+                        <div class="flex items-center pointer-events-none">
+                            <i class="fas ${car.icon} text-3xl text-gray-400 w-12 text-center"></i>
+                            <div class="ml-4">
+                                <h4 class="font-bold text-lg">${car.name}</h4>
+                                <p class="text-sm text-gray-400">${car.description}</p>
+                                <p class="text-xs text-gray-300 mt-1">
+                                    <i class="fas fa-user-group mr-1"></i> ${car.passengers} <i class="fas fa-suitcase ml-3 mr-1"></i> ${car.luggage}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="text-right pointer-events-none">
+                            ${priceHTML}
+                        </div>
+                    </div>
+                `;
+                carOptionsContainer.insertAdjacentHTML('beforeend', carCard);
+            });
+        }
+        
+        // Calculate surge pricing based on time of day and demand
+        function calculateSurgeMultiplier() {
+            const now = new Date();
+            const hour = now.getHours();
+            const day = now.getDay(); // 0 = Sunday, 6 = Saturday
+            
+            // Higher prices during rush hours and weekends
+            if ((hour >= 7 && hour <= 10) || (hour >= 16 && hour <= 19)) {
+                return 1.3; // 30% surge during rush hours
+            }
+            
+            if (day === 0 || day === 6) {
+                return 1.2; // 20% surge on weekends
+            }
+            
+            return 1.0; // Normal pricing
+        }
+        
+        // Check if executive cars are available
+        function checkExecutiveAvailability() {
+            const now = new Date();
+            const hour = now.getHours();
+            
+            // Executive cars not available late at night
+            if (hour < 6 || hour > 22) {
+                return true;
+            }
+            
+            return false;
+        }
+        
+        // Check if MPV cars are available
+        function checkMPVAvailability() {
+            const bookingTime = new Date(document.getElementById('booking-time').value);
+            const hour = bookingTime.getHours();
+            
+            // MPV cars need advanced booking (at least 2 hours ahead)
+            const now = new Date();
+            const timeDifference = (bookingTime - now) / (1000 * 60 * 60); // Difference in hours
+            
+            if (timeDifference < 2) {
+                return true;
+            }
+            
+            return false;
         }
 
         window.gm_authFailure = () => {
